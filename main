@@ -1,0 +1,126 @@
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include <GL/glut.h>
+#include<windows.h>
+#include <stdlib.h>
+#include<stdio.h>
+#include<bits/stdc++.h>
+#include<iostream>
+#include<vector>
+#define screen_height 480
+
+using namespace std;
+
+vector<vector<int> >polygon;
+int ywmin=480, ywmax = 0;
+
+void init()
+{
+    glClearColor(0,0,0,0);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0,640,0,480);
+}
+
+static void display(void)
+{
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glColor3d(1,0,0);
+    glFlush();
+}
+
+void plotPoint(int x,int y)
+{
+    glColor3d(1,0,0);
+    glPointSize(3.0);
+    glBegin(GL_POINTS);
+        glVertex2d(x,y);
+    glEnd();
+    glFlush();
+}
+
+void plotPolygon(vector<vector<int> >&polygon)
+{
+    glColor3d(1,0,0);
+    glBegin(GL_LINES);
+        for(int i=0;i<polygon.size();i++)
+        {
+            glVertex2d(polygon[i][0],polygon[i][1]);
+            glVertex2d(polygon[(i+1)%polygon.size()][0],polygon[(i+1)%polygon.size()][1]);
+        }
+    glEnd();
+    glFlush();
+}
+
+void YXAlgorithm()
+{
+    for(int i =0; i<polygon.size(); i++)
+    {
+        ywmin = min(ywmin, polygon[i][1]);
+        ywmax = max(ywmax, polygon[i][1]);
+    }
+    for(int y=ywmin; y<=ywmax; y++)
+    {
+        vector<int> intersections;
+        for(int i=0; i<polygon.size(); i++)
+        {
+            int x1 = polygon[i][0];
+            int y1 = polygon[i][1];
+            int x2 = polygon[(i+1)%polygon.size()][0];
+            int y2 = polygon[(i+1)%polygon.size()][1];
+            if((y1<=y && y<y2) || (y2<=y && y<y1))
+            {
+                int xIntersect = (int)(((float)(y-y1)/(y2-y1)) * (x2-x1)+x1);
+                intersections.push_back(xIntersect);
+            }
+        }
+        sort(intersections.begin(), intersections.end());
+        for(int i=0; i<intersections.size(); i++)
+        {
+            int xStart = intersections[i];
+            int xEnd = intersections[i+1];
+            for(int x=xStart; x<=xEnd; x++)
+            {
+                plotPoint(x, y);
+            }
+        }
+    }
+}
+
+void mouseHandler(int button,int state,int x,int y)
+{
+    if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
+    {
+        y = screen_height - y;
+        vector<int>v(2);
+        v[0] = x;
+        v[1] = y;
+        ywmin = min(ywmin, y);
+        ywmax = max(ywmax, y);
+        plotPoint(x, y);
+        polygon.push_back(v);
+    }
+    else if(button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN)
+    {
+        plotPolygon(polygon);
+        YXAlgorithm();
+    }
+}
+
+int main(int argc, char *argv[])
+{
+    glutInit(&argc, argv);
+    glutInitWindowSize(640,480);
+    glutInitWindowPosition(10,10);
+    glutInitDisplayMode(GLUT_RGB | GLUT_SINGLE);
+
+    glutCreateWindow("Scan Line");
+
+    init();
+    glutDisplayFunc(display);
+    glutMouseFunc(mouseHandler);
+
+    glutMainLoop();
+    return EXIT_SUCCESS;
+}
+
